@@ -31,6 +31,9 @@ program_BIN_DIR := bin
 # If true, will output all used variables
 debugging := false
 
+# Force use of mpicxx compiler
+CXX = mpicxx
+
 # CPPFLAGS are extra flags to give to the C preprocessor and programs that use it (like the C compiler)
 CPPFLAGS += -std=c++11 -pthread -Wpedantic -Wall -Wextra -Winit-self -Winline -Wconversion -Weffc++ -Wstrict-null-sentinel -Wold-style-cast -Wnoexcept -Wctor-dtor-privacy -Woverloaded-virtual -Wconversion -Wsign-promo -Wzero-as-null-pointer-constant 
 
@@ -124,6 +127,7 @@ release: $(program_NAME)
 $(program_NAME): makedirs $(program_OBJS)
 	$(LINK.cc) $(program_OBJS) -o $(program_BIN_DIR)/$(program_NAME)
 
+# Makes the output directories if they don't exist
 makedirs: 
 	$(MKDIR1) "$(program_BIN_DIR)" $(MKDIR2) "$(program_BIN_DIR)"
 
