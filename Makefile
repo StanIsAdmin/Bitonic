@@ -50,12 +50,15 @@ ifdef ComSpec
 	PATHSEP=\\
 	RM=del /F /Q
 	END=.exe
+	MKDIR1=if not exist
+	MKDIR2=mkdir
 else
 	PATHSEP=/
 	RM=rm -f
 	END=
+	MKDIR1=mkdir -p
+	MKDIR2=mkdir -p
 endif
-
 
 # - - - - - FILE LOOKUP - - - - -
 
@@ -118,9 +121,11 @@ release: $(program_NAME)
 # The program depends on the object files
 # The build rule $(LINK.cc) is used to link the object files and output a file with the same name as the program. LINK.cc makes use of CXX,CXXFLAGS,CPPFLAGS,LDFLAGS,TARGET_ARCH.
 # For more info on LINK, do 'make -p | grep LINK'
-$(program_NAME): $(program_OBJS)
+$(program_NAME): $(program_OBJS) makedirs
 	$(LINK.cc) $(program_OBJS) -o $(program_BIN_DIR)/$(program_NAME)
 
+makedirs: 
+	$(MKDIR1) "$(program_BIN_DIR)" $(MKDIR2) "$(program_BIN_DIR)"
 
 # This target removes the built program and the generated object files. 
 # The @ symbol indicates that the line should be run silently, and the - symbol indicates that errors should be ignored
