@@ -1,0 +1,11 @@
+#!/bin/bash -l
+#PBS -l nodes=4:ppn=8
+#PBS -l walltime=00:02:00
+#PBS -l mem=200mb
+#PBS -j oe
+#PBS -N Hello
+#PBS -o hello_out.txt
+
+echo "Running job on host '$HOST' - " `date`
+mpirun ./bin/Bitonic
+echo "...done"

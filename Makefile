@@ -57,7 +57,7 @@ else
 	RM=rm -f
 	END=
 	MKDIR1=mkdir -p
-	MKDIR2=mkdir -p
+	MKDIR2=&& mkdir -p
 endif
 
 # - - - - - FILE LOOKUP - - - - -
@@ -121,7 +121,7 @@ release: $(program_NAME)
 # The program depends on the object files
 # The build rule $(LINK.cc) is used to link the object files and output a file with the same name as the program. LINK.cc makes use of CXX,CXXFLAGS,CPPFLAGS,LDFLAGS,TARGET_ARCH.
 # For more info on LINK, do 'make -p | grep LINK'
-$(program_NAME): $(program_OBJS) makedirs
+$(program_NAME): makedirs $(program_OBJS)
 	$(LINK.cc) $(program_OBJS) -o $(program_BIN_DIR)/$(program_NAME)
 
 makedirs: 
