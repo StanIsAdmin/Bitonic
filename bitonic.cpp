@@ -4,7 +4,7 @@
 #include "mpi.h"
 
 #define MASTER_NODE 0
-#define VERBOSE (process_rank == 4) ? true : false
+#define VERBOSE (process_rank == 0) ? true : false
 
 
 void printArray(int array[], int array_size);
@@ -49,7 +49,7 @@ int main(int argc, char * argv[]) {
     } else if (array_size==8) { 
 		if (process_rank==MASTER_NODE) {
             // master node portion
-            int array[] = {1, 2, 3, 4, 5, 6, 7, 8};
+            int array[] = {4, 3, 2, 1, 5, 6, 7, 8};
             masterNode(array, array_size);
         } else {
             // computing node portion
@@ -85,9 +85,8 @@ void masterNode(int array[], int array_size) {
 	
 	// Receive sorted values from processes
 	for (int compute_id = 0; compute_id < block_size; compute_id++) {
-		masterReceiveInts(compute_id+1, array[compute_id], array[compute_id+1]);
+		masterReceiveInts(compute_id+1, array[compute_id*2], array[compute_id*2+1]);
 	}
-	
 	
 
 	std::cout << "Sorted array : " << std::endl;
@@ -176,14 +175,13 @@ void computeNode(int array_size) {
 	int value_low, value_high;
 	masterReceiveInts(MASTER_NODE, value_low, value_high);
 	
-	int block_size = array_size/2;
-	int depth = log2(block_size)-1;
-	while (block_size >= 2) {
+	int depth = log2(array_size)-2;
+	while (depth >= 0) {
 		compare_swap(value_low, value_high);
 		
 		int target_rank = (compute_id ^ (1 << depth)) + 1;
 		
-		if ((compute_id % block_size) == 0) {
+		if (((compute_id & ( 1 << depth )) >> depth) == 0) {
 			computeSendInt(target_rank, value_high);
 			value_high = computeReceiveInt();
 		} else {
@@ -191,7 +189,6 @@ void computeNode(int array_size) {
 			value_low = computeReceiveInt();
 		}
 		
-		block_size /= 2;
 		depth -= 1;
 	}
 	compare_swap(value_low, value_high);
