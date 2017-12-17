@@ -4,4 +4,4 @@ before_install:
   - sudo apt-get install -y libopenmpi-dev openmpi-bin
 script:
   - make
-  - bash ./jobfile
+  - make test
