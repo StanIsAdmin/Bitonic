@@ -4,7 +4,8 @@
 #include "mpi.h"
 
 #define MASTER_NODE 0
-#define VERBOSE false//(process_rank == 0) ? true : false
+#define SORT_FIRST false
+#define VERBOSE (process_rank == 3) ? true : false
 
 
 void printArray(int array[], int array_size);
@@ -12,6 +13,7 @@ void masterNode(int array[], int array_size);
 void masterSendInts(int target_rank, int value_low, int value_high);
 void masterReceiveInts(int source_rank, int& value_low, int& value_high);
 void compare_swap(int& low, int& high);
+void compare_swap(int& low, int& high, bool xor_value);
 void computeSendInt(int target_rank, int value);
 int computeReceiveInt(int source_rank);
 void computeNode(int array_size);
@@ -41,6 +43,7 @@ int main(int argc, char * argv[]) {
         if (process_rank==MASTER_NODE) {
             // master node portion
             int array[] = {14, 16, 15, 11, 9, 8, 7, 5, 4, 2, 1, 3, 6, 10, 12, 13};
+			//int array[] = {12, 14, 3, 2, 6, 11, 9, 10, 1, 7, 8, 15, 5, 4, 13, 0};
             masterNode(array, array_size);
         } else {
             // computing node portion
@@ -50,6 +53,7 @@ int main(int argc, char * argv[]) {
 		if (process_rank==MASTER_NODE) {
             // master node portion
             int array[] = {4, 3, 2, 1, 5, 6, 7, 8};
+			//int array[] = {7, 6, 5, 4, 3, 2, 1, 0};
             masterNode(array, array_size);
         } else {
             // computing node portion
@@ -74,11 +78,27 @@ void printArray(int array[], int array_size) {
 
 
 void masterNode(int array[], int array_size) {
-	std::cout << "Unsorted array : " << std::endl;
+	int block_size = array_size/2;
+	
+	if (SORT_FIRST) {
+		std::cout << "Unsorted array : " << std::endl;
+		printArray(array, array_size);
+	
+		// Share array data with processes
+		for (int compute_id = 0; compute_id<block_size; compute_id++) {
+			masterSendInts(compute_id+1, array[compute_id*2], array[compute_id*2+1]);
+		}
+	
+		// Receive sorted values from processes
+		for (int compute_id = 0; compute_id < block_size; compute_id++) {
+			masterReceiveInts(compute_id+1, array[compute_id*2], array[compute_id*2+1]);
+		}
+	}
+	
+	std::cout << "Bitonic array : " << std::endl;
 	printArray(array, array_size);
 	
 	// Share array data with processes
-	int block_size = array_size/2;
     for (int compute_id = 0; compute_id<block_size; compute_id++) {
 		masterSendInts(compute_id+1, array[compute_id], array[compute_id+block_size]);
 	}
@@ -130,7 +150,11 @@ void masterReceiveInts(int source_rank, int& value_low, int& value_high) {
 }
 
 void compare_swap(int& low, int& high) {
-	if (low > high) std::swap(low, high);
+	compare_swap(low, high, false);
+}
+
+void compare_swap(int& low, int& high, bool xor_value) {
+	if ((low > high) ^ xor_value) std::swap(low, high);
 }
 
 void computeSendInt(int target_rank, int value) {
@@ -169,13 +193,15 @@ int computeReceiveInt(int source_rank) {
 void computeNode(int array_size) {
 	// Computing indexing starts at 0
 	int compute_id = process_rank - 1;
+	int max_depth = log2(array_size)-2;
 	
-	// Receive two initial values
+	
+	// Receive values to merge from master
 	int value_low, value_high;
 	masterReceiveInts(MASTER_NODE, value_low, value_high);
 	
-	
-	for (int depth = log2(array_size)-2; depth >= 0; depth--) {
+	// Bitonic merge (up or down)
+	for (int depth = max_depth; depth >= 0; depth--) {
 		compare_swap(value_low, value_high);
 		
 		int paired_rank = (compute_id ^ (1 << depth)) + 1;
