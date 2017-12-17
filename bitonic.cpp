@@ -4,16 +4,16 @@
 #include "mpi.h"
 
 #define MASTER_NODE 0
-#define VERBOSE (process_rank == 0) ? true : false
+#define VERBOSE false//(process_rank == 0) ? true : false
 
 
 void printArray(int array[], int array_size);
 void masterNode(int array[], int array_size);
-void masterSendInts(int process_id, int value_low, int value_high);
-void masterReceiveInts(int process_id, int& value_low, int& value_high);
+void masterSendInts(int target_rank, int value_low, int value_high);
+void masterReceiveInts(int source_rank, int& value_low, int& value_high);
 void compare_swap(int& low, int& high);
-void computeSendInt(int process_id, int value);
-int computeReceiveInt();
+void computeSendInt(int target_rank, int value);
+int computeReceiveInt(int source_rank);
 void computeNode(int array_size);
 
 // Global values
@@ -87,37 +87,36 @@ void masterNode(int array[], int array_size) {
 	for (int compute_id = 0; compute_id < block_size; compute_id++) {
 		masterReceiveInts(compute_id+1, array[compute_id*2], array[compute_id*2+1]);
 	}
-	
 
 	std::cout << "Sorted array : " << std::endl;
 	printArray(array, array_size);
 }
 
 
-void masterSendInts(int process_id, int value_low, int value_high) {
+void masterSendInts(int target_rank, int value_low, int value_high) {
 	if (VERBOSE) {
 		std::cout << "[" << process_rank << "] - ";
-		std::cout << "Sending values to " << process_id << ": " << value_low << ", " << value_high << std::endl;
+		std::cout << "Sending values to " << target_rank << ": " << value_low << ", " << value_high << std::endl;
 	}
 	int values[] = {value_low, value_high};
 	MPI_Send(
 		&values,
 		2,
 		MPI_INT,		// type
-		process_id,
+		target_rank,
 		0, 				// tag
 		MPI_COMM_WORLD
 	);
 }
 
 
-void masterReceiveInts(int process_id, int& value_low, int& value_high) {
+void masterReceiveInts(int source_rank, int& value_low, int& value_high) {
 	int values[2];
 	MPI_Recv(
 		&values,
 		2,
 		MPI_INT,		// type
-		process_id,
+		source_rank,
 		0,				// tag
 		MPI_COMM_WORLD,
 		MPI_STATUS_IGNORE
@@ -126,7 +125,7 @@ void masterReceiveInts(int process_id, int& value_low, int& value_high) {
 	value_high = values[1];
 	if (VERBOSE) {
 		std::cout << "[" << process_rank << "] - ";
-		std::cout << "Received values from " << process_id << ": " << value_low << ", " << value_high << std::endl;
+		std::cout << "Received values from " << source_rank << ": " << value_low << ", " << value_high << std::endl;
 	}
 }
 
@@ -134,35 +133,35 @@ void compare_swap(int& low, int& high) {
 	if (low > high) std::swap(low, high);
 }
 
-void computeSendInt(int process_id, int value) {
+void computeSendInt(int target_rank, int value) {
 	if (VERBOSE) {
 		std::cout << "[" << process_rank << "] - ";
-		std::cout << "Sending value to " << process_id << ": " << value << std::endl;
+		std::cout << "Sending value to " << target_rank << ": " << value << std::endl;
 	}
 	MPI_Send(
 		&value,
 		1,
 		MPI_INT,		// type
-		process_id,
+		target_rank,
 		0, 				// tag
 		MPI_COMM_WORLD
 	);
 }
 
-int computeReceiveInt() {
+int computeReceiveInt(int source_rank) {
 	int value;
 	MPI_Recv(
 		&value,
 		1,
 		MPI_INT,		// type
-		MPI_ANY_SOURCE,
+		source_rank,
 		0,				// tag
 		MPI_COMM_WORLD,
 		MPI_STATUS_IGNORE
 	);
 	if (VERBOSE) {
 		std::cout << "[" << process_rank << "] - ";
-		std::cout << "Received value " << ": " << value << std::endl;
+		std::cout << "Received value from " << source_rank << ": " << value << std::endl;
 	}
 	return value;
 }
@@ -175,21 +174,19 @@ void computeNode(int array_size) {
 	int value_low, value_high;
 	masterReceiveInts(MASTER_NODE, value_low, value_high);
 	
-	int depth = log2(array_size)-2;
-	while (depth >= 0) {
+	
+	for (int depth = log2(array_size)-2; depth >= 0; depth--) {
 		compare_swap(value_low, value_high);
 		
-		int target_rank = (compute_id ^ (1 << depth)) + 1;
+		int paired_rank = (compute_id ^ (1 << depth)) + 1;
 		
 		if (((compute_id & ( 1 << depth )) >> depth) == 0) {
-			computeSendInt(target_rank, value_high);
-			value_high = computeReceiveInt();
+			computeSendInt(paired_rank, value_high);
+			value_high = computeReceiveInt(paired_rank);
 		} else {
-			computeSendInt(target_rank, value_low);
-			value_low = computeReceiveInt();
+			computeSendInt(paired_rank, value_low);
+			value_low = computeReceiveInt(paired_rank);
 		}
-		
-		depth -= 1;
 	}
 	compare_swap(value_low, value_high);
 	
