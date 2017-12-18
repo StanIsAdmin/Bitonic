@@ -1,5 +1,5 @@
 all:
-	mpicxx bitonic.cpp -o bitonic
+	mpicxx -std=c++11 bitonic.cpp -o bitonic
 
 test:
 	bash ./jobfile
