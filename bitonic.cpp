@@ -118,20 +118,31 @@ void masterNode() {
 
 	std::cout << "Sorted array : " << std::endl;
 	printArray(array, array_size);
+	
+	// Verify sorting
+	for (int i=0; i<array_size-1; i++) {
+		assert(! (array[i+1] SORT_ORDER array[i]));
+	}
 }
 
 void masterMerge(int array[], int block_size) {
-	int half_block = block_size/2;
+	// Number of processes per block
+	int block_processes = block_size/2;
 	
 	// Share array data with processes
 	for (int compute_id = 0; compute_id < process_count-1; compute_id++) {
-		int offset = (compute_id/half_block) * block_size;
-		offset += compute_id%half_block;
-		masterSendInts(compute_id+1, array[offset], array[offset+half_block]);
+		// The offset is the index of the first value: offset = block_offset + process_offset
+		// block_offset := block_number * block_size
+		int offset = (compute_id/block_processes) * block_size;
+		// process_offset := id % block_processes
+		offset += compute_id % block_processes;
+		
+		masterSendInts(compute_id+1, array[offset], array[offset+block_processes]);
 	}
 
 	// Receive merged values from processes
 	for (int compute_id = 0; compute_id < process_count-1; compute_id++) {
+		// After a merge, the block size is always 2 (one process per block)
 		masterReceiveInts(compute_id+1, array[compute_id*2], array[compute_id*2+1]);
 	}
 }
@@ -210,9 +221,10 @@ void computeReceiveInt(int source_rank, int& value) {
 }
 
 void computeNode() {
+	// block_size (number of value pairs per block) = 2^depth
 	int max_depth = log2(array_size)-1;
 	
-	// BITONIC SORT
+	// BITONIC SORT (successive merges of increasing block sizes)
 	if (SORT_FIRST) {
 		for (int depth=0; depth<max_depth; depth++) {
 			computeMerge(depth);
@@ -224,27 +236,34 @@ void computeNode() {
 }
 	
 void computeMerge(int max_depth) {
-	// Computing indexing starts at 0
+	// Compute process indexing starts at 0 (like it should)
 	int compute_id = process_rank - 1;
 	
 	// Receive values to merge from master
 	int value_low, value_high;
 	masterReceiveInts(MASTER_NODE, value_low, value_high);
 	
-	// True if the comparison is inversed
+	// True if the order is inversed
 	bool opposite_order = ((compute_id & ( 1 << max_depth )) >> max_depth);
 	
 	// BITONIC MERGE
 	for (int depth = max_depth-1; depth >= 0; depth--) {
+		// Order values, possibly in the opposite order
 		compare_swap(value_low, value_high, opposite_order);
 		
+		// Rank of the corresponding process (process that is in the
+		// (same block now and in the same relative position after next split)
 		int paired_rank = (compute_id ^ (1 << depth)) + 1;
-		bool merge_down = ((compute_id & ( 1 << depth )) >> depth);
 		
-		if (! merge_down) {
+		// Decides what value is sent to the paired process
+		bool merge_up = !((compute_id & ( 1 << depth )) >> depth);
+		
+		if (merge_up) {
+			// Send "high" value
 			computeSendInt(paired_rank, value_high);
 			computeReceiveInt(paired_rank, value_high);
 		} else {
+			// Send "low" value
 			computeSendInt(paired_rank, value_low);
 			computeReceiveInt(paired_rank, value_low);
 		}
