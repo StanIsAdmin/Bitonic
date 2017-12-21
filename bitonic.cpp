@@ -6,7 +6,6 @@
 
 #define MASTER_NODE 0
 #define SORT_FIRST true
-#define RANDOM_LIST true
 #define SORT_ORDER <
 #define VERBOSE false//(process_rank == 0)
 
@@ -58,12 +57,12 @@ int main(int argc, char * argv[]) {
 }
 
 void getArray(int destination[]) {
-	if (RANDOM_LIST) {
+	#ifdef RANDOM_LIST
 		srand(time(NULL));
 		for (int i = 0; i < array_size; i++)
 			destination[i] = rand() % (array_size*2); // arbitrary max
 		return;
-	}
+	#endif
 	
 	std::initializer_list<int> source;
 	switch (array_size) {

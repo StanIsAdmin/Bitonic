@@ -7,5 +7,5 @@
 #PBS -o bitonic_out.txt
 
 echo "Running job on host '$HOST' - " `date`
-mpirun -np 9 ./bitonic
+mpirun -np 9 ./$1
 echo "...done"
