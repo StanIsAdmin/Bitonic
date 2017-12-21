@@ -62,12 +62,7 @@
 \section{Project usage and configuration}\label{usage}
 
   As mentioned in the assignment statements, the source code can either be used with a \textit{bitonic} list as input or with an unsorted list.\\
-  In the case of a \textit{bitonic} list input, the user is invited to set the macro \verb|SORT_FIRST| (\verb|main.cpp| line 8) to \textit{false}. Doing so, will make the program to sort the hardcoded list written line 73.\\
-  % Rémy, du coup à relire vu que je suis pas un grand littéraire :P
-  The bonus part mention the possibility to use full random list.  This is implemented on the file \verb|bitonicbonus| (which could be compile with the option \verb|bitonicbonus| on the Makefile).\\
-  %If the user wants to test the project with a fully random list, he only has to set the macro \verb|RANDOM_LIST| to \textit{true}.\\
-  Notice that the list generation does not ensure the generation of a \textit{bitonic} list. Hence, it is required to set the macro \verb|SORT_FIRST| to \textit{true}.\\
-  Once that the manipulation have been done, the user is invited to compile the project using the provided Makefile.
+  However, unlike what has been specified in the assignment statement, there is only one source code as the project implement a general way to resolve both the mandatory and the bonus part (i.e. providing two separate files would have been equivalent to a copy-paste). In order to get the two executables, the user is invited to use the provided makefile, two executable will be named respectively \verb|bitonic| for the mandatory part of the project and \verb|bitonicbonus| for the bonus part of the project.
 
 \section{Inter-processes communications}
 
