@@ -16,12 +16,12 @@
 
 \section{Implementation choices}
 
-  Typically, there are two main types of process~: the \textit{master node} and the \textit{compute node}. Each node has its own purpose(s) and interact with the other processes using \textit{MPI}.\\
+  Typically, there are two main types of process~: the \textit{master node} and the \textit{compute node}. Each node has its own purpose(s) and interacts with the other processes using \textit{MPI}.\\
   
-  \noindent There is only one \textit{master node} per program instance. Its objective is to oversee and deal \textit{merge tasks} to its \textit{compute nodes}. Typically, the \textit{master node} will, when a non-bitonic list is given, execute multiple successive merge call so that the list will be \textit{bitonic} before performing the sort itself. Afterwards, the sorting  ---which consists of a merge of the whole list--- is performed.\\
+  \noindent There is only one \textit{master node} per program instance. Its objective is to oversee and deal \textit{merge tasks} to its \textit{compute nodes}. Typically, the \textit{master node} will, when a non-bitonic list is given, execute multiple successive merge calls so that the list will be \textit{bitonic} before performing the sort itself. Afterwards, the sorting  ---which consists of a merge of the whole list--- is performed.\\
   
   \noindent The \textit{compute nodes} have for only mission to compare two values and to determine to which other \textit{compute node} they have to send the outcome of the comparison. The mechanism is as follow~:\\
-  Initially, each \textit{compute node} receives two values from the master node. Then a first comparison is done. After having complete the comparison, the outcome is send to another \textit{compute node} as mentioned above, a new value (coming from another \textit{compute node} having performed the same mechanism) is received and another comparison is performed.\\
+  Initially, each \textit{compute node} receives two values from the \textit{master node}. Then a first comparison is done. After having complete the comparison, the outcome is sent to another \textit{compute node} as mentioned above, a new value (coming from another \textit{compute node} having performed the same mechanism) is received and another comparison is performed.\\
   The number of comparisons and the determination of both the sending \textit{compute node} and the receiving \textit{compute node} are obtained at the runtime. The former is obtained by applying the $\log_{2}$ of the list size whereas the latter are obtained using the following formula~:
   \[dest = (id~xor~(1 << depth)) + 1\]
   Where~:
@@ -36,7 +36,7 @@
   As mentioned in the assignment statements, the source code can either be used with a \textit{bitonic} list as input or with an unsorted list.\\
   In the case of a \textit{bitonic} list input, the user is invited to set the macro \verb|SORT_FIRST| (\verb|main.cpp| line 8) to \textit{false}. Doing so, will make the program to sort the hardcoded list written line 74. If the user wants to test the project with a fully random list, he only has to set the macro \verb|RANDOM_LIST| to \textit{true}.\\
   Notice that the list generation does not ensure the generation of a \textit{bitonic} list. Hence, it is required to set the macro \verb|SORT_FIRST| to \textit{true}.\\
-  Once that the manipulation have been done, the user is invited to compile the project using the provided Makefile.
+  Once that the manipulation has been done, the user is invited to compile the project using the provided Makefile.
 
 \section{Inter-processes communications}
 
@@ -62,9 +62,9 @@
 
 \section{Limitations and performances}
 
-  The biggest limitation of the project is due to the inter-node communication protocol that has been implemented. For reminder, the \textit{master node} oversees the important steps of the communications (See \ref{X} for further information). % TODO place proper reference depending on the modification bring by Stan
-  Even though introducing such a protocol has eased the development of the project, useless communications have also been introduced. Resulting in an non-optimal (but more than correct) use of \textit{MPI}.
-  This flaw could be addressed by implementing a formula that would deterministically choose the correct destination (i.e. \textit{compute node}). Consequently, the \textit{master node} would be less solicited as it would not have to oversee the communication anymore (i.e. its job would only consists of sending the initial list and receiving the sorted version).\\
+  The biggest limitation of the project is due to the inter-node communication protocol that has been implemented. For reminder, the \textit{master node} oversees the important steps of the communication scheme (See \ref{X} for further information). % TODO place proper reference depending on the modification bring by Stan
+  Even though introducing such a protocol has eased the development of the project, useless communications have also been introduced resulting in an non-optimal (but more than correct) use of \textit{MPI}.
+  This flaw could be addressed by implementing a formula that would deterministically choose the correct destination ($=$ \textit{compute node}). Consequently, the \textit{master node} would be less solicited as it would not have to oversee the communications anymore (i.e. its job would only consists of sending the initial list and receiving the sorted list).\\
   
   \noindent Further more, provided that the above "optimisation" has been implemented, one could also consider using the master mode as a \textit{computation node}. There would be several benefits as the overall number of required communications would decrease and as the number of required processes would be reduced by 1. Notice that this "optimisation" would however breaks one of the rules of the assignment statement.
 
